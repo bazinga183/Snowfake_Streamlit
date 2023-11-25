@@ -1,7 +1,7 @@
 import streamlit
-import requests
 import pandas as pd
 import snowflake.connector
+from urllib.error import URLError
 
 #First menu section
 streamlit.title("My Parent's New Healthy Diner!")
@@ -29,17 +29,19 @@ streamlit.dataframe(fruits_to_show)
 
 #New section to display fruityvice api response
 streamlit.header('Fruityvice Fruit Advice!')
-fruit_choice = streamlit.text_input('What fruit would you like information about?', 'Kiwi')
-streamlit.write('The user entered', fruit_choice)
-fruityvice_response = requests.get(f"https://fruityvice.com/api/fruit/{fruit_choice}").json()
+#Try to illicit a response from the user and only run once the user inputs a response
+try:
+    fruit_choice = streamlit.text_input('What fruit would you like information about?')
+    if not fruit_choice:
+        streamlit.error('Please select a fruit to get information.')
+    else:    
+        fruityvice_response = requests.get(f"https://fruityvice.com/api/fruit/{fruit_choice}").json()
 
-#Normalize the json response
-fruityvice_normalized = pd.json_normalize(fruityvice_response) 
-streamlit.dataframe(fruityvice_normalized)
-
-#Adding a fruit to the dataframe above
-add_fruit = streamlit.text_input('What fruit would you like to add?')
-streamlit.write(f'Thanks for adding {add_fruit}!')
+        #Normalize the json response
+        fruityvice_normalized = pd.json_normalize(fruityvice_response) 
+        streamlit.dataframe(fruityvice_normalized)
+except URLError as e:
+    streamlit.error()
 
 my_cnx = snowflake.connector.connect(**streamlit.secrets["snowflake"])
 my_cur = my_cnx.cursor()
@@ -47,3 +49,9 @@ my_cur.execute('SELECT * FROM fruit_load_list')
 my_data_rows = my_cur.fetchall()
 streamlit.header('The fruit load list contains:')
 streamlit.dataframe(my_data_rows)
+
+#Adding a fruit to the dataframe above
+add_fruit = streamlit.text_input('What fruit would you like to add?')
+streamlit.write(f'Thanks for adding {add_fruit}!')
+
+my_cur.execute('INSERT INTO fruit_load_list VALUES ("from streamlit)')
