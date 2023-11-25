@@ -28,6 +28,12 @@ fruits_to_show = my_fruit_list.loc[fruits_selected]
 #Dataframe of available fruits
 streamlit.dataframe(fruits_to_show)
 
+#Create a function for getting fruit information
+def get_fruityvice_data(this_fruit_choice):
+    fruityvice_response = requests.get(f"https://fruityvice.com/api/fruit/{fruit_choice}")
+    fruityvice_normalized = pd.json_normalize(fruityvice_response.json()) 
+    return fruityvice_normalized 
+
 #New section to display fruityvice api response
 streamlit.header('Fruityvice Fruit Advice!')
 #Try to illicit a response from the user and only run once the user inputs a response
@@ -36,14 +42,12 @@ try:
     if not fruit_choice:
         streamlit.error('Please select a fruit to get information.')
     else:    
-        fruityvice_response = requests.get(f"https://fruityvice.com/api/fruit/{fruit_choice}").json()
-
-        #Normalize the json response
-        fruityvice_normalized = pd.json_normalize(fruityvice_response) 
-        streamlit.dataframe(fruityvice_normalized)
+        back_from_function = get_fruityvice_data(fruit_choice)
+        streamlit.dataframe(back_from_function)
 except URLError as e:
     streamlit.error()
 
+streamlit.stop()
 my_cnx = snowflake.connector.connect(**streamlit.secrets["snowflake"])
 my_cur = my_cnx.cursor()
 my_cur.execute('SELECT * FROM fruit_load_list')
